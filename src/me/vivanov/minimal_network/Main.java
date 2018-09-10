@@ -23,13 +23,13 @@ public class Main {
             while(it.hasNext()) {
                 int node = it.next();
 
-                if (visited.size() == 0) visited.add(node); // add the first first
+                if (visited.size() == 0) visited.add(node); // add the first node
 
                 Edge smallestEdge = findSmallestEdge(nodes, visited);
                 if (smallestEdge != null) {
                     totalWeight += smallestEdge.getWeight();
                 }
-                visited.add(node); // add the current first to the list of visited nodes
+                visited.add(node); // add the current node to the list of visited nodes
             }
 
             System.out.println(totalWeight);
@@ -44,11 +44,12 @@ public class Main {
     }
 
     /**
-     * Find the edge with the smallest weight and not visited "destination" first amongst the edges of the visited nodes
+     * Find the edge with the smallest weight and not visited "destination node" amongst the edges of the visited nodes
      */
     private static Edge findSmallestEdge(Map<Integer, List<Edge>> nodes, Set<Integer> visited) {
         Edge smallestEdge = null;
         Integer nodeOfSmallestEdge = null;
+
         // iterate over all the visited nodes
         for (Integer node : visited) {
             List<Edge> edges = nodes.get(node);
@@ -58,7 +59,7 @@ public class Main {
             while (edgeIterator.hasNext()) {
                 Edge edge = edgeIterator.next();
 
-                // if the destination first of this edge is present in the visited, remove it from the edges collection
+                // if the destination node of this edge is present in the visited, remove it from the edges collection
                 if (visited.contains(edge.getOtherNode(node))) {
                     edgeIterator.remove();
                 } else if (smallestEdge == null || (edge.getWeight() < smallestEdge.getWeight())) {
@@ -77,7 +78,7 @@ public class Main {
     }
 
     private static Map<Integer, List<Edge>> createNodeMap(Scanner scanner) {
-        Map<Integer, List<Edge>> nodes = new HashMap<>();
+        Map<Integer, List<Edge>> nodeMap = new HashMap<>();
 
         scanner.nextInt(); // number of nodes
         int m = scanner.nextInt(); // number of edges
@@ -91,14 +92,14 @@ public class Main {
             if (u == v) continue;
 
             Edge edge = new Edge(u, v, w);
-            addEdges(nodes, new int[]{u, v}, edge);
+            addEdges(nodeMap, new int[]{u, v}, edge);
         }
 
-        return nodes;
+        return nodeMap;
     }
 
     /**
-     * Add pointer to the edge for the two nodes in a map
+     * Add pointer to the edge for the two nodes in the map
      */
     private static void addEdges(Map<Integer, List<Edge>> nodesMap, int[] nodes,  Edge edge) {
         for (int node : nodes) {
