@@ -21,5 +21,5 @@ The output is a single number - the sum of the total weight of the resulting gra
 15  
 
 ## Program execution
-There is a compiled file called `minimal-network.jar` which you can run using the following command:
+There is a compiled file called `minimal-network.jar` which you can run using the following command:  
 `java -jar minimal-network.jar data.txt`
