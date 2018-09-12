@@ -8,31 +8,86 @@ import java.util.*;
 
 public class Main {
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         if (args.length < 1)
             System.out.println("You need to provide a file name as an argument");
 
         try (Reader reader = new BufferedReader(new FileReader(args[0]))){
             final Scanner scanner = new Scanner(reader);
-            Map<Integer, List<Edge>> nodes = createNodeMap(scanner);
 
-            Set<Integer> nodeKeys = nodes.keySet();
-            Iterator<Integer> it = nodeKeys.iterator();
-            Set<Integer> visited = new HashSet<>();
-            int totalWeight = 0;
-            while(it.hasNext()) {
-                int node = it.next();
+            Map<Integer, Edge> networkEdges = new HashMap<>();
+            Set<Integer> nodes = new HashSet<>(); // nodes need to be unique
 
-                if (visited.size() == 0) visited.add(node); // add the first node
+            scanner.nextInt(); // number of nodes
+            int m = scanner.nextInt(); // number of edges
 
-                Edge smallestEdge = findSmallestEdge(nodes, visited);
-                if (smallestEdge != null) {
-                    totalWeight += smallestEdge.getWeight();
+            // collect the network's unique edges and all nodes
+            for (int i = 0; i < m; i++) {
+                int u = scanner.nextInt();
+                int v = scanner.nextInt();
+                int w = scanner.nextInt();
+
+                int left, right;
+                // order vertices so that the left is always the smaller, this way the Edge objects will be unique in the NavigableSet
+                if (u < v) {
+                    left = u;
+                    right = v;
+                } else {
+                    left = v;
+                    right = u;
                 }
-                visited.add(node); // add the current node to the list of visited nodes
+
+                Edge edge = new Edge(left, right, w);
+                int hashCode = edge.hashCode();
+
+                // check if this is another edge between the same pair of vertices, because a pair of vertices may have
+                // more than one edge
+                if (networkEdges.containsKey(hashCode)) {
+                    if (networkEdges.get(hashCode).getWeight() <= w)
+                        continue; // if the existing edge in the collection is smaller in weight, skipp adding
+                }
+
+                networkEdges.put(hashCode, edge);
+                nodes.add(left);
+                nodes.add(right);
             }
 
-            System.out.println(totalWeight);
+            // convert the map to LinkedList for easier working and fast remove() method
+            List<Edge> networkEdgesArray = new LinkedList<>(networkEdges.values());
+
+            Set<Integer> visited = new HashSet<>(); // we need efficiency in the .contains() method
+            visited.add(networkEdgesArray.get(0).getLeft()); // start with the first node
+            int minimumWeight = 0;
+
+            // walk through all the nodes
+            while (visited.size() < nodes.size()) {
+
+                // collect all the candidate edges from the network (with one vertices visited, another not yet), ordering them by weight
+                NavigableSet<Edge> candidateEdges = new TreeSet<>(Comparator.comparing(Edge::getWeight));
+
+                for (Edge edge : networkEdgesArray) {
+
+                    if (visited.contains(edge.getLeft()) == visited.contains(edge.getRight()))
+                        continue; // we need only one of the nodes of the edge to be visited
+
+                    candidateEdges.add(edge);
+                }
+
+                Edge minimalEdge = candidateEdges.pollFirst();
+                if (minimalEdge != null) {
+                    minimumWeight += minimalEdge.getWeight(); // add to the total
+                    // add the two vertices of the edge to the visited
+                    visited.add(minimalEdge.getLeft());
+                    visited.add(minimalEdge.getRight());
+
+                    networkEdgesArray.remove(minimalEdge); // make the algorithm greedy
+                }
+                else {
+                    throw new Exception("minimal edge not found: " + candidateEdges);
+                }
+            }
+
+            System.out.println(minimumWeight);
 
         } catch (IOException ex) {
             System.out.println("Exception of type: " + ex.getClass().getSimpleName());
@@ -42,103 +97,33 @@ public class Main {
             }
         }
     }
-
-    /**
-     * Find the edge with the smallest weight and not visited "destination node" amongst the edges of the visited nodes
-     */
-    private static Edge findSmallestEdge(Map<Integer, List<Edge>> nodes, Set<Integer> visited) {
-        Edge smallestEdge = null;
-        Integer nodeOfSmallestEdge = null;
-
-        // iterate over all the visited nodes
-        for (Integer node : visited) {
-            List<Edge> edges = nodes.get(node);
-            Iterator<Edge> edgeIterator = edges.iterator();
-
-            // iterate over the edges of the visited nodes
-            while (edgeIterator.hasNext()) {
-                Edge edge = edgeIterator.next();
-
-                // if the destination node of this edge is present in the visited, remove it from the edges collection
-                if (visited.contains(edge.getOtherNode(node))) {
-                    edgeIterator.remove();
-                } else if (smallestEdge == null || (edge.getWeight() < smallestEdge.getWeight())) {
-                    smallestEdge = edge;
-                    nodeOfSmallestEdge = node;
-                }
-            }
-        }
-
-        if (nodeOfSmallestEdge != null) {
-            nodes.get(nodeOfSmallestEdge).remove(smallestEdge);
-            visited.add(smallestEdge.getOtherNode(nodeOfSmallestEdge));
-        }
-
-        return smallestEdge;
-    }
-
-    private static Map<Integer, List<Edge>> createNodeMap(Scanner scanner) {
-        Map<Integer, List<Edge>> nodeMap = new HashMap<>();
-
-        scanner.nextInt(); // number of nodes
-        int m = scanner.nextInt(); // number of edges
-
-        for (int i = 0; i < m; i++) {
-
-            int u = scanner.nextInt();
-            int v = scanner.nextInt();
-            int w = scanner.nextInt();
-
-            if (u == v) continue;
-
-            Edge edge = new Edge(u, v, w);
-            addEdges(nodeMap, new int[]{u, v}, edge);
-        }
-
-        return nodeMap;
-    }
-
-    /**
-     * Add pointer to the edge for the two nodes in the map
-     */
-    private static void addEdges(Map<Integer, List<Edge>> nodesMap, int[] nodes,  Edge edge) {
-        for (int node : nodes) {
-            List<Edge> edges = getNodeEdges(nodesMap, node);
-            edges.add(edge);
-            nodesMap.put(node, edges);
-        }
-    }
-
-    private static List<Edge> getNodeEdges(Map<Integer, List<Edge>> nodesMap, int node) {
-        if (!nodesMap.containsKey(node)) {
-            return new ArrayList<>();
-        }
-
-        return nodesMap.get(node);
-    }
 }
 
 class Edge {
-    private final int first;
-    private final int second;
+    private final int left;
+    private final int right;
     private final int weight;
 
-    Edge(int first, int second, int weight) {
-        this.first = first;
-        this.second = second;
+    Edge(int left, int right, int weight) {
+        this.left = left;
+        this.right = right;
         this.weight = weight;
     }
 
-    int getOtherNode(int node) {
-        return this.first == node ? this.second : this.first;
+    int getLeft() {
+        return left;
     }
 
-    int getWeight() {
+    int getRight() {
+        return right;
+    }
+
+    public int getWeight() {
         return weight;
     }
 
-    @Override()
-    public String toString() {
-        return first + " " + second + " " + weight;
+    @Override
+    public int hashCode() {
+        return Objects.hash(left, right);
     }
 }

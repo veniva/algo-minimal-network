@@ -1,5 +1,7 @@
 /*
 !.gitignore
 !data.txt
+!minimal-network.jar
 !src
 !README.md
+src/META-INF
